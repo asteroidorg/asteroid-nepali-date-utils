@@ -1,240 +1,306 @@
 # @asteroidstudio/date-utils
 
-Utilities for working with Nepali Bikram Sambat dates and common date helpers.
+Utilities for converting and working with Nepali **Bikram Sambat (BS)** and
+**Gregorian (AD)** dates, plus number-to-words helpers in English and Nepali.
 
-This package exposes:
+- `AD2BS` / `BS2AD` — calendar conversion (object or string in, object or string out)
+- `convertAD2BS` / `convertBS2AD` — convenience wrappers that accept a JS `Date`
+- `NepaliFunctions` — a grouped API with `AD` and `BS` namespaces
+- Unicode digit helpers and number-to-words (English / Nepali)
 
-- `AD2BS` and `BS2AD` for calendar conversion
-- `NepaliFunctions` for a grouped API with AD and BS namespaces
-- small helpers like `formatDate`, `createDate`, and `getLastDayOfMonth`
-- number-to-words helpers in English and Nepali
+Zero runtime dependencies. Ships ESM, CJS, and TypeScript types.
 
 ## Install
 
 ```bash
 npm install @asteroidstudio/date-utils
+# or
+pnpm add @asteroidstudio/date-utils
 ```
 
-## Quick Start
+## Quick start
 
 ```ts
 import { AD2BS, BS2AD, NepaliFunctions } from "@asteroidstudio/date-utils";
 
-const bsDate = AD2BS("2024-01-01", "YYYY-MM-DD", "YYYY-MM-DD");
-// "2080-09-16"
+AD2BS("2024-01-01", "YYYY-MM-DD", "YYYY-MM-DD"); // "2080-09-16"
+BS2AD("2080-09-16", "YYYY-MM-DD", "YYYY-MM-DD"); // "2024-01-01"
 
-const adDate = BS2AD("2080-09-16", "YYYY-MM-DD", "YYYY-MM-DD");
-// "2024-01-01"
-
-const todayBs = NepaliFunctions.BS.GetCurrentDate("YYYY-MM-DD");
-const todayAd = NepaliFunctions.AD.GetCurrentDate("MM/DD/YYYY");
+NepaliFunctions.BS.GetCurrentDate("YYYY-MM-DD"); // e.g. "2081-03-22"
+NepaliFunctions.AD.GetCurrentDate("YYYY-MM-DD"); // e.g. "2024-07-06"
 ```
 
-## Date Shapes
+## Core concepts
 
-The core object shape used throughout the package is:
+### `DateObject`
+
+The shape used throughout the package:
 
 ```ts
-type DateObject = {
-  year: number;
-  month: number;
-  day: number;
-};
+type DateObject = { year: number; month: number; day: number };
+// month is 1-based (1 = first month), day is 1-based.
 ```
 
-## Main Exports
+### Supported formats
 
-### Conversion helpers
+```ts
+type DateFormat =
+  | "YYYY-MM-DD" | "YYYY/MM/DD" | "YYYY.MM.DD"
+  | "DD-MM-YYYY" | "DD/MM/YYYY" | "DD.MM.YYYY"
+  | "MM-DD-YYYY" | "MM/DD/YYYY";
+```
 
-- `AD2BS(adDate, sourceDateFormat?, returnDateFormat?)`
-- `BS2AD(bsDate, sourceDateFormat?, returnDateFormat?)`
-- `convertAD2BS(date, format?, returnFormat?)`
-- `convertBS2AD(date, format?)`
+### Default formats (important)
 
-Use the low-level `AD2BS` and `BS2AD` functions when you need `DateObject`
-support or direct control over input and output formats. Use the convenience
-wrappers when you want to pass a JavaScript `Date` or a date string and get a
-formatted string back.
+The two namespaces have **different** string defaults:
 
-### Shared helpers
+| Namespace | Default string format        |
+| --------- | ---------------------------- |
+| `BS`      | `YYYY-MM-DD`                 |
+| `AD`      | `MM/DD/YYYY`                 |
 
-- `formatDate(date)`
-- `createDate(year, month, day)`
-- `getLastDayOfMonth(year, month)`
-- `getEndDayOfMonth(year, month)`
-- `convertToUnicode(numberOrString)`
-- `convertToNumber(unicodeString)`
-- `NepaliFunctions.Get2DigitNo(number)`
-- `numberToWords(number, isCurrency?)`
-- `numberToWordsUnicode(number, isCurrency?)`
+When you pass a **string** without an explicit `dateFormat`, it is parsed with
+that namespace's default. To avoid surprises, either pass a `DateObject` or
+always pass the matching `dateFormat` explicitly.
 
-### Constants and types
+```ts
+// Pass a DateObject — no format ambiguity:
+NepaliFunctions.AD.DatesDiff({ year: 2024, month: 1, day: 1 },
+                             { year: 2024, month: 1, day: 15 }); // 14
 
-- `NepaliFunctions.AvailableFormats`
-- `DEFAULT_BS_DATE_FORMAT`
-- `DEFAULT_AD_DATE_FORMAT`
-- `DATE_FORMATS`
-- `DATE_COMPARE_TYPES`
-- `DATE_TYPES`
+// Or pass a string WITH its format:
+NepaliFunctions.AD.DatesDiff("01/01/2024", "01/15/2024", "MM/DD/YYYY"); // 14
+```
+
+### Supported BS range
+
+The bundled BS calendar table covers **`1970-01-01` to `2100-12-30` (BS)**.
+Conversions and lookups are only valid inside this range.
+
+```ts
+NepaliFunctions.BS.MinimumDate(); // { year: 1970, month: 1, day: 1 }
+NepaliFunctions.BS.MaximumDate(); // { year: 2100, month: 12, day: 30 }
+```
+
+---
+
+## Conversion functions
+
+### `AD2BS(adDate, sourceFormat?, returnFormat?)`
+
+Convert a Gregorian date to Bikram Sambat. Returns a `DateObject` when called
+with a `DateObject`/`Date`, or a formatted string when a `sourceFormat` is given.
+
+```ts
+import { AD2BS } from "@asteroidstudio/date-utils";
+
+AD2BS({ year: 2024, month: 1, day: 1 });            // { year: 2080, month: 9, day: 16 }
+AD2BS("2024-01-01", "YYYY-MM-DD", "YYYY-MM-DD");    // "2080-09-16"
+AD2BS("2024-01-01", "YYYY-MM-DD", "DD/MM/YYYY");    // "16/09/2080"
+```
+
+### `BS2AD(bsDate, sourceFormat?, returnFormat?)`
+
+Convert a Bikram Sambat date to Gregorian.
+
+```ts
+import { BS2AD } from "@asteroidstudio/date-utils";
+
+BS2AD({ year: 2080, month: 9, day: 16 });           // { year: 2024, month: 1, day: 1 }
+BS2AD("2080-09-16", "YYYY-MM-DD", "YYYY-MM-DD");    // "2024-01-01"
+```
+
+### `convertAD2BS(date, format?, returnFormat?)` / `convertBS2AD(date, format?)`
+
+Convenience wrappers that also accept a JS `Date` and always return a formatted
+string. `format` defaults to `YYYY-MM-DD`.
+
+```ts
+import { convertAD2BS, convertBS2AD } from "@asteroidstudio/date-utils";
+
+convertAD2BS(new Date(2024, 0, 1)); // "2080-09-16"
+convertAD2BS("2024-01-01");         // "2080-09-16"
+convertBS2AD("2080-09-16");         // "2024-01-01"
+```
+
+---
+
+## Shared helpers
+
+```ts
+import {
+  formatDate, createDate, getLastDayOfMonth, getEndDayOfMonth,
+  convertToUnicode, convertToNumber, getAdMonths, getBsMonths,
+} from "@asteroidstudio/date-utils";
+
+formatDate(new Date(2024, 0, 5)); // "2024-01-05"  (YYYY-MM-DD of a JS Date)
+createDate(2024, 1, 5);           // JS Date for 2024-01-05 (month is 1-based)
+getLastDayOfMonth(2024, 2);       // 29  (AD/Gregorian month length)
+getEndDayOfMonth(2080, 9);        // 29  (BS month length)
+
+convertToUnicode(2080);           // "२०८०"  (ASCII digits -> Devanagari)
+convertToNumber("२०८०");          // "2080"  (Devanagari -> ASCII digits)
+
+getAdMonths();                    // ["January", ... "December"]
+getBsMonths();                    // ["Baisakh", "Jestha", ... "Chaitra"]
+```
+
+### Number to words
+
+```ts
+import { numberToWords, numberToWordsUnicode } from "@asteroidstudio/date-utils";
+
+numberToWords(1250000);              // "Twelve Lakh Fifty Thousand"
+numberToWords(1250.5, true);         // "One Thousand Two Hundred Fifty Rupees and Fifty Paisa"
+
+numberToWordsUnicode(1250000);       // "बाह्र लाख पचास हजार"
+numberToWordsUnicode(1250.5, true);  // "एक हजार दुई सय पचास रुपैंया पचास पैसा"
+```
+
+Pass `true` as the second argument to append `Rupees`/`Paisa` (`रुपैंया`/`पैसा`).
+
+---
 
 ## `NepaliFunctions`
 
-`NepaliFunctions` is the most convenient way to access the package API when you
-prefer a namespaced object.
+A single namespaced object exposing the full API.
 
 ### Root helpers
 
 ```ts
 import { NepaliFunctions } from "@asteroidstudio/date-utils";
 
-const parsed = NepaliFunctions.ParseDate("2080-09-16");
-const isValid = NepaliFunctions.IsValidDateFormat("YYYY-MM-DD");
-const asString = NepaliFunctions.ConvertToDateFormat(
-  { year: 2080, month: 9, day: 16 },
-  "DD/MM/YYYY",
-);
+NepaliFunctions.AvailableFormats;               // the 8 supported DateFormat strings
+NepaliFunctions.IsValidDateFormat("YYYY-MM-DD"); // true
+NepaliFunctions.Get2DigitNo(5);                  // "05"
+
+NepaliFunctions.ParseDate("2080-09-16");
+// { parsedDate: { year: 2080, month: 9, day: 16 }, parsedFormat: [...] }
+
+NepaliFunctions.ConvertToDateObject("16/09/2080", "DD/MM/YYYY");
+// { year: 2080, month: 9, day: 16 }
+
+NepaliFunctions.ConvertToDateFormat({ year: 2080, month: 9, day: 16 }, "DD/MM/YYYY");
+// "16/09/2080"
+
+NepaliFunctions.ConvertToUnicode(16);  // "१६"
+NepaliFunctions.ConvertToNumber("१६"); // "16"
+
+NepaliFunctions.DefaultBsDateFormat; // "YYYY-MM-DD"
+NepaliFunctions.DefaultAdDateFormat; // "MM/DD/YYYY"
 ```
 
-### AD namespace
+### `NepaliFunctions.AD`
+
+Gregorian helpers. String inputs default to `MM/DD/YYYY` (see
+[Default formats](#default-formats-important)).
 
 ```ts
-const adToday = NepaliFunctions.AD.GetCurrentDate();
-const adFormatted = NepaliFunctions.AD.GetCurrentDate("YYYY-MM-DD");
+const AD = NepaliFunctions.AD;
 
-const monthName = NepaliFunctions.AD.GetMonth(0); // "January"
-const dayName = NepaliFunctions.AD.GetFullDay("2024-01-01", "YYYY-MM-DD");
-const daysBetween = NepaliFunctions.AD.DatesDiff("2024-01-01", "2024-01-15");
+AD.GetCurrentDate();            // { year, month, day } for today (Nepal time)
+AD.GetCurrentDate("YYYY-MM-DD"); // today as a formatted string
+AD.GetCurrentYear();            // number
+AD.GetCurrentMonth();           // number (1-based)
+AD.GetCurrentDay();             // number
+
+AD.GetMonths();                 // ["January", ... "December"]
+AD.GetMonth(0);                 // "January"   (0-based index)
+AD.GetDays();                   // ["Sunday", ... "Saturday"]
+AD.GetDay(1);                   // "Monday"     (0 = Sunday)
+AD.GetDaysShort();              // ["S","M","T","W","T","F","S"]
+AD.GetDayShort(1);              // "M"
+
+AD.GetDaysInMonth(2024, 2);     // 29  (year, month 1-based)
+
+AD.DatesDiff({ year: 2024, month: 1, day: 1 },
+             { year: 2024, month: 1, day: 15 }); // 14
+
+AD.AddDays({ year: 2024, month: 1, day: 1 }, 20); // { year: 2024, month: 1, day: 21 }
+
+AD.GetFullDate({ year: 2024, month: 1, day: 1 }); // "1 January 2024"
+AD.GetFullDay({ year: 2024, month: 1, day: 1 });  // "Monday"
 ```
 
-Available AD methods:
+### `NepaliFunctions.BS`
 
-- `GetCurrentDate`
-- `GetCurrentYear`
-- `GetCurrentMonth`
-- `GetCurrentDay`
-- `GetMonths`
-- `GetMonth`
-- `GetDays`
-- `GetDay`
-- `GetDaysShort`
-- `GetDayShort`
-- `GetDaysInMonth`
-- `DatesDiff`
-- `AddDays`
-- `GetFullDate`
-- `GetFullDay`
-
-### BS namespace
+Bikram Sambat helpers. String inputs default to `YYYY-MM-DD`.
 
 ```ts
-const bsToday = NepaliFunctions.BS.GetCurrentDate();
-const bsTodayFormatted = NepaliFunctions.BS.GetCurrentDate("YYYY-MM-DD");
+const BS = NepaliFunctions.BS;
 
-const valid = NepaliFunctions.BS.ValidateDate("2080-09-16", "YYYY-MM-DD");
-const equal = NepaliFunctions.BS.IsEqualTo("2080-09-16", "2080-09-16");
-const between = NepaliFunctions.BS.IsBetweenDates(
-  "2080-09-16",
-  "2080-01-01",
-  "2080-12-30",
-  "YYYY-MM-DD",
-  true,
-);
+BS.ValidateDate("2080-09-16", "YYYY-MM-DD"); // true
+BS.ValidateDate("2080-13-01", "YYYY-MM-DD"); // false (no month 13)
+
+BS.IsBetweenDates("2080-09-16", "2080-01-01", "2080-12-30", "YYYY-MM-DD", true); // true
+// signature: (checkDate, startDate, endDate, dateFormat?, inclusive?)
+
+BS.GetCurrentDate();             // { year, month, day } for today (Nepal time)
+BS.GetCurrentDate("YYYY-MM-DD"); // today as a formatted string
+BS.GetCurrentYear();             // number
+BS.GetCurrentMonth();            // number (1-based)
+BS.GetCurrentDay();              // number
+
+BS.GetMonths();                  // ["Baisakh", ... "Chaitra"]
+BS.GetMonth(8);                  // "Poush"   (0-based index)
+BS.GetMonthsInUnicode();         // ["बैशाख", ... "चैत्र"]
+BS.GetMonthInUnicode(8);         // "पौष"
+
+BS.GetFullDate("2080-09-16", false, "YYYY-MM-DD"); // "16 Poush 2080"
+BS.GetFullDate("2080-09-16", true,  "YYYY-MM-DD"); // "१६ पौष २०८०"   (unicodeFlag = true)
+
+BS.GetDaysUnicode();             // ["आइतवार", ... "शनिवार"]
+BS.GetDayUnicode(1);             // "सोमवार"
+BS.GetDaysUnicodeShort();        // ["आ","सो","मं","बु","बि","शु","श"]
+BS.GetDayUnicodeShort(1);        // "सो"
+
+BS.GetFullDay("2080-09-16", "YYYY-MM-DD");          // "Monday"
+BS.GetFullDayInUnicode("2080-09-16", "YYYY-MM-DD"); // "सोमवार"
+
+BS.GetDaysInMonth(2080, 9);      // 29  (year, month 1-based; within supported range)
+
+BS.DatesDiff("2080-09-01", "2080-09-16", "YYYY-MM-DD"); // 15
+BS.AddDays("2080-09-16", 20, "YYYY-MM-DD");             // "2080-10-07"
+
+BS.IsEqualTo("2080-09-16", "2080-09-16", "YYYY-MM-DD");            // true
+BS.IsGreaterThan("2080-09-17", "2080-09-16", "YYYY-MM-DD");        // true
+BS.IsLessThan("2080-09-15", "2080-09-16", "YYYY-MM-DD");           // true
+BS.IsGreaterThanOrEqualTo("2080-09-16", "2080-09-16", "YYYY-MM-DD"); // true
+BS.IsLessThanOrEqualTo("2080-09-16", "2080-09-16", "YYYY-MM-DD");    // true
+
+BS.MinimumDate();                // { year: 1970, month: 1, day: 1 }
+BS.MaximumDate();                // { year: 2100, month: 12, day: 30 }
 ```
 
-Available BS methods:
+---
 
-- `ValidateDate`
-- `IsBetweenDates`
-- `GetCurrentDate`
-- `GetCurrentYear`
-- `GetCurrentMonth`
-- `GetCurrentDay`
-- `GetMonths`
-- `GetMonth`
-- `GetMonthsInUnicode`
-- `GetMonthInUnicode`
-- `GetFullDate`
-- `GetDaysUnicode`
-- `GetDayUnicode`
-- `GetDaysUnicodeShort`
-- `GetDayUnicodeShort`
-- `GetFullDay`
-- `GetFullDayInUnicode`
-- `GetDaysInMonth`
-- `DatesDiff`
-- `AddDays`
-- `IsEqualTo`
-- `IsGreaterThan`
-- `IsLessThan`
-- `IsGreaterThanOrEqualTo`
-- `IsLessThanOrEqualTo`
-- `MinimumDate`
-- `MaximumDate`
-
-## Supported Formats
-
-The package understands these formats:
-
-- `YYYY-MM-DD`
-- `YYYY/MM/DD`
-- `YYYY.MM.DD`
-- `DD-MM-YYYY`
-- `DD/MM/YYYY`
-- `DD.MM.YYYY`
-- `MM-DD-YYYY`
-- `MM/DD/YYYY`
-
-## Supported BS Range
-
-The bundled Bikram Sambat calendar data covers:
-
-- minimum: `1970-01-01 BS`
-- maximum: `2100-12-30 BS`
-
-`NepaliFunctions.BS.MinimumDate()` and `NepaliFunctions.BS.MaximumDate()` return
-those boundaries as `DateObject`s.
-
-## Examples
-
-### Format a BS date in Nepali Unicode
+## Constants & types
 
 ```ts
-import { NepaliFunctions } from "@asteroidstudio/date-utils";
+import {
+  DATE_FORMATS,            // DateFormat[]  — the 8 supported formats
+  DATE_COMPARE_TYPES,      // { IsEqualTo: "==", IsLessThan: "<", ... }
+  DATE_TYPES,              // { AD: "AD", BS: "BS" }
+  DEFAULT_BS_DATE_FORMAT,  // "YYYY-MM-DD"
+  DEFAULT_AD_DATE_FORMAT,  // "MM/DD/YYYY"
+} from "@asteroidstudio/date-utils";
 
-const fullDate = NepaliFunctions.BS.GetFullDate("2080-09-16", true, "YYYY-MM-DD");
-// "१६ पौष २०८०"
+import type { DateObject, DateFormat } from "@asteroidstudio/date-utils";
 ```
 
-### Convert a JavaScript `Date`
+---
 
-```ts
-import { convertAD2BS, convertBS2AD } from "@asteroidstudio/date-utils";
+## Notes & caveats
 
-const bs = convertAD2BS(new Date(2024, 0, 1));
-// "2080-09-16"
-
-const ad = convertBS2AD("2080-09-16");
-// "2024-01-01"
-```
-
-### Convert numbers to words
-
-```ts
-import { numberToWords, numberToWordsUnicode } from "@asteroidstudio/date-utils";
-
-numberToWords(1250000);
-// "Twelve Lakh Fifty Thousand"
-
-numberToWordsUnicode(1250000);
-// "बाह्र लाख पचास हजार"
-```
-
-## Notes
-
-- Current date helpers use a Nepal Time offset.
-- `AD` helpers work with Gregorian dates.
-- `BS` helpers work with Bikram Sambat dates and validate against the bundled
-  calendar table.
+- **Current-date helpers use Nepal Time (UTC+5:45).** `GetCurrentDate` and the
+  related getters are based on the current instant in Nepal.
+- **Stay within the supported BS range** (`1970-01-01` … `2100-12-30 BS`).
+  Inputs outside this range are not supported.
+- **`DatesDiff` returns the absolute number of days** between the two dates
+  (direction is not encoded in the sign).
+- **Many functions return `null`** on input that cannot be parsed or validated
+  (e.g. `ValidateDate` returns `false`/`null`, conversions return `null`).
+  Check the result before using it.
 
 ## License
 
