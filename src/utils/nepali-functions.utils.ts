@@ -235,7 +235,7 @@ export const DATE_TYPES: Record<string, DateType> = {
 };
 
 export const DEFAULT_BS_DATE_FORMAT: DateFormat = "YYYY-MM-DD";
-export const DEFAULT_AD_DATE_FORMAT: DateFormat = "MM/DD/YYYY";
+export const DEFAULT_AD_DATE_FORMAT: DateFormat = "YYYY-MM-DD";
 
 class NepaliDateConverter {
   readonly #bs: BsCalendarData;
