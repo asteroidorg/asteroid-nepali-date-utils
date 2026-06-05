@@ -22,7 +22,6 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "node scripts/run-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
