@@ -57,7 +57,7 @@ The two namespaces have **different** string defaults:
 | Namespace | Default string format        |
 | --------- | ---------------------------- |
 | `BS`      | `YYYY-MM-DD`                 |
-| `AD`      | `MM/DD/YYYY`                 |
+| `AD`      | `YYYY-MM-DD`                 |
 
 When you pass a **string** without an explicit `dateFormat`, it is parsed with
 that namespace's default. To avoid surprises, either pass a `DateObject` or
@@ -69,7 +69,7 @@ NepaliFunctions.AD.DatesDiff({ year: 2024, month: 1, day: 1 },
                              { year: 2024, month: 1, day: 15 }); // 14
 
 // Or pass a string WITH its format:
-NepaliFunctions.AD.DatesDiff("01/01/2024", "01/15/2024", "MM/DD/YYYY"); // 14
+NepaliFunctions.AD.DatesDiff("2024-01-01", "2024-01-15", "YYYY-MM-DD"); // 14
 ```
 
 ### Supported BS range
@@ -187,12 +187,12 @@ NepaliFunctions.ConvertToUnicode(16);  // "१६"
 NepaliFunctions.ConvertToNumber("१६"); // "16"
 
 NepaliFunctions.DefaultBsDateFormat; // "YYYY-MM-DD"
-NepaliFunctions.DefaultAdDateFormat; // "MM/DD/YYYY"
+NepaliFunctions.DefaultAdDateFormat; // "YYYY-MM-DD"
 ```
 
 ### `NepaliFunctions.AD`
 
-Gregorian helpers. String inputs default to `MM/DD/YYYY` (see
+Gregorian helpers. String inputs default to `YYYY-MM-DD` (see
 [Default formats](#default-formats-important)).
 
 ```ts
@@ -282,7 +282,7 @@ import {
   DATE_COMPARE_TYPES,      // { IsEqualTo: "==", IsLessThan: "<", ... }
   DATE_TYPES,              // { AD: "AD", BS: "BS" }
   DEFAULT_BS_DATE_FORMAT,  // "YYYY-MM-DD"
-  DEFAULT_AD_DATE_FORMAT,  // "MM/DD/YYYY"
+  DEFAULT_AD_DATE_FORMAT,  // "YYYY-MM-DD"
 } from "@asteroidstudio/date-utils";
 
 import type { DateObject, DateFormat } from "@asteroidstudio/date-utils";
