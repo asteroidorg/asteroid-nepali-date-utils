@@ -20,9 +20,9 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit",
+    "build": "vue-tsc --noEmit && vite build",
+    "dev": "vite build --watch",
+    "typecheck": "vue-tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "exports": {
@@ -39,7 +39,14 @@
   ],
   "type": "module",
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "tsup": "^8.3.0"
+    "vue": "^3.5.0",
+    "vite": "^7.x",
+    "@vitejs/plugin-vue": "^6.x",
+    "vite-plugin-dts": "^4.x",
+    "vue-tsc": "^3.x",
+    "typescript": "^5.6.0"
+  },
+    "peerDependencies": {
+    "vue": "^3.5.0"
   }
 }
