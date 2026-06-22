@@ -290,10 +290,9 @@ import { ref, computed, onUnmounted, watch, onMounted, nextTick } from "vue";
 import {
   MONTH_EN,
   WEEK_SHORT_EN,
-  NEPALI_DATE_MAP,
 } from "../../constant/nepaliDate.constant";
 
-import {NepaliDate} from "../../utils/date.util"
+import {NepaliDate, NEPALI_DATE_MAP} from "../../utils/date.util"
 
 export interface NepaliDatePickerProps {
   id?: string;

@@ -1,17 +1,42 @@
 import { AD2BS, BS2AD, type DateFormat } from "./nepali-functions.utils";
 import {
+  BS_CALENDAR_DATA,
   EPOCH,
   MONTH_EN,
   MONTH_SHORT_EN,
   MONTH_NP,
   MONTH_SHORT_NP,
-  NEPALI_DATE_MAP,
   NUMBER_NP,
   WEEK_EN,
   WEEK_SHORT_EN,
   WEEK_NP,
   WEEK_SHORT_NP,
 } from "../constant/nepaliDate.constant";
+
+export interface NepaliDateMapEntry {
+  year: number;
+  days: number[];
+  totalDays: number;
+  daysTillNow: number;
+}
+
+function buildNepaliDateMap(): NepaliDateMapEntry[] {
+  return Object.entries(BS_CALENDAR_DATA)
+    .map(([year, days]) => ({
+      year: Number(year),
+      days,
+      totalDays: days.reduce((sum, d) => sum + d, 0),
+      daysTillNow: 0,
+    }))
+    .sort((a, b) => a.year - b.year);
+}
+
+let ndTotalDays = 0;
+export const NEPALI_DATE_MAP: NepaliDateMapEntry[] = buildNepaliDateMap();
+NEPALI_DATE_MAP.forEach((entry) => {
+  ndTotalDays += entry.totalDays;
+  entry.daysTillNow = ndTotalDays;
+});
 
 export function formatDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
