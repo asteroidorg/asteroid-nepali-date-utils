@@ -385,8 +385,7 @@ A Vue 3 date picker for BS dates with month/year selection, min/max date constra
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import { NepaliDatePicker } from "@asteroidstudio/date-utils";
-import "@asteroidstudio/date-utils/style.css";
+import { NepaliDatePicker } from "@asteroidstudio/date-utils/vue";
 
 const date = ref("");
 </script>
@@ -440,11 +439,7 @@ const date = ref("");
 
 ### Styling
 
-Import the CSS to get the default look:
-
-```ts
-import "@asteroidstudio/date-utils/style.css";
-```
+Styles are automatically included when importing the Vue module — no separate CSS import needed.
 
 The rendered DOM structure:
 
@@ -484,10 +479,7 @@ Override styles by targeting these classes with higher specificity. Examples:
 - **Many functions return `null`** on input that cannot be parsed or validated
   (e.g. `ValidateDate` returns `false`/`null`, conversions return `null`).
   Check the result before using it.
-- **The NepaliDatePicker requires importing the CSS file**:
-  ```ts
-  import "@asteroidstudio/date-utils/style.css";
-  ```
+- **The NepaliDatePicker styles are injected automatically** when importing from `@asteroidstudio/date-utils/vue` — no separate CSS import needed.
 
 ## License
 

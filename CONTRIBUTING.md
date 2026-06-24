@@ -67,18 +67,23 @@ For quick iteration, run `pnpm dev` in this repo (watch mode rebuilds `dist/` on
 
 ```
 src/
-├── index.ts                         # public exports entry
+├── index.ts                         # core entry — re-exports utils/constants, framework-free
 ├── utils/
 │   ├── date.util.ts                 # NepaliDate class + formatNepaliDate
-│   └── nepali-functions.utils.ts    # AD2BS, BS2AD, NepaliFunctions, numberToWords
+│   ├── nepali-functions.utils.ts    # AD2BS, BS2AD, NepaliFunctions, numberToWords
+│   └── picker.util.ts              # framework-agnostic picker helpers (masking, validation, positioning)
 ├── constant/
 │   └── nepaliDate.constant.ts       # BS_CALENDAR_DATA, EPOCH, month/week name arrays
-└── components/
-    └── common/
-        └── NepaliDatePicker.vue     # Vue 3 date picker component
+└── vue/
+    ├── index.ts                     # Vue sub-entry — re-exports NepaliDatePicker
+    ├── NepaliDatePicker.vue         # Vue 3 date picker component
+    └── shim-vue.d.ts                   # Vue type declarations (scoped to vue/ build only)
 ```
 
-Public exports ship from `src/index.ts` — add any new feature there so it appears in the bundle.
+**Entry points:**
+- `import { NepaliDate } from "@asteroidstudio/date-utils"` — any framework, zero Vue deps
+- `import { NepaliDatePicker } from "@asteroidstudio/date-utils/vue"` — Vue 3 app
+Public core exports ship from `src/index.ts` — add any new utility there so it appears in the main bundle.
 
 ## Contribution Guidelines
 

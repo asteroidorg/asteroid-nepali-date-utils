@@ -154,7 +154,7 @@
                       "
                       :class="{
                         calendar__disable_date: isDateDisabled(
-                          getFullDate(calendarDays.prevMonth, day),
+                          getFullDate(calendarDays.prevMonth, day), getDateBounds(),
                         ),
                         calendar__not_current_month_saturday:
                           isSaturday(
@@ -189,7 +189,7 @@
                         getFullDate(calendarDays.currentMonth, day),
                       ),
                       calendar__disable_date: isDateDisabled(
-                        getFullDate(calendarDays.currentMonth, day),
+                        getFullDate(calendarDays.currentMonth, day), getDateBounds(),
                       ),
                       calendar__saturday:
                         isSaturday(
@@ -225,7 +225,7 @@
                       "
                       :class="{
                         calendar__disable_date: isDateDisabled(
-                          getFullDate(calendarDays.nextMonth, day),
+                          getFullDate(calendarDays.nextMonth, day), getDateBounds(),
                         ),
                         calendar__not_current_month_saturday:
                           isSaturday(
@@ -256,7 +256,7 @@
                   class="calendar_month"
                   :class="{
                     calendar__selected: activeMonth(index),
-                    calendar__disable_date: isMonthDisabled(index),
+                    calendar__disable_date: isMonthDisabled(date.year, index, getDateBounds()),
                   }"
                   @click="selectMonth(index)"
                 >
@@ -270,7 +270,7 @@
                   class="calendar__year"
                   :class="{
                     calendar__selected: activeYear(year),
-                    calendar__disable_date: isYearDisabled(year),
+                    calendar__disable_date: isYearDisabled(year, getDateBounds()),
                   }"
                   @click="selectYear(year)"
                 >
@@ -290,9 +290,17 @@ import { ref, computed, onUnmounted, watch, onMounted, nextTick } from "vue";
 import {
   MONTH_EN,
   WEEK_SHORT_EN,
-} from "../../constant/nepaliDate.constant";
+} from "../constant/nepaliDate.constant";
 
-import {NepaliDate, NEPALI_DATE_MAP} from "../../utils/date.util"
+import {NepaliDate, NEPALI_DATE_MAP} from "../utils/date.util"
+import {
+  isDateDisabled,
+  isMonthDisabled,
+  isYearDisabled,
+  maskNepaliDateInput,
+  computeDropdownPosition,
+  type DateBounds,
+} from "../utils/picker.util"
 
 export interface NepaliDatePickerProps {
   id?: string;
@@ -524,52 +532,19 @@ const calculateCalendarPosition = () => {
   if (!inputElement || !calendarElement) return;
 
   const inputRect = inputElement.getBoundingClientRect();
-  const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
-
   const { height, width } = getCalendarNaturalHeight();
 
-  const calendarHeight = height;
-  const calendarWidth = width;
+  const pos = computeDropdownPosition(
+    inputRect,
+    { height, width },
+    { height: window.innerHeight, width: window.innerWidth },
+    { x: window.scrollX, y: window.scrollY },
+    SPACING,
+  );
 
-  const spaceAbove = inputRect.top;
-  const spaceBelow = viewportHeight - inputRect.bottom;
-
-  const shouldPlaceAbove =
-    spaceBelow < calendarHeight + SPACING && spaceAbove > spaceBelow;
-  positionAbove.value = shouldPlaceAbove;
-
-  if (shouldPlaceAbove) {
-    calendarTop.value =
-      inputRect.top + window.scrollY - calendarHeight - SPACING - 1;
-
-    if (calendarTop.value < window.scrollY) {
-      calendarTop.value = window.scrollY + SPACING;
-    }
-  } else {
-    calendarTop.value = inputRect.bottom + window.scrollY + SPACING;
-
-    const maxTop = viewportHeight + window.scrollY - calendarHeight - SPACING;
-    if (calendarTop.value > maxTop) {
-      calendarTop.value = maxTop;
-    }
-  }
-
-  let leftPosition = inputRect.left + window.scrollX;
-
-  if (leftPosition + calendarWidth > viewportWidth + window.scrollX) {
-    leftPosition = inputRect.right + window.scrollX - calendarWidth;
-  }
-
-  if (leftPosition < window.scrollX) {
-    leftPosition = window.scrollX + SPACING;
-  }
-
-  if (calendarWidth > viewportWidth) {
-    leftPosition = window.scrollX + SPACING;
-  }
-
-  calendarLeft.value = leftPosition;
+  calendarTop.value = pos.top;
+  calendarLeft.value = pos.left;
+  positionAbove.value = pos.positionAbove;
 };
 
 interface fullDate {
@@ -609,7 +584,7 @@ const toggleYear = () => {
 const setToValidDateIfTodayDisabled = () => {
   if (props.modelValue) return;
   const today = new NepaliDate();
-  if (isDateDisabled(today)) {
+  if (isDateDisabled(today, getDateBounds())) {
     if (allowCheckMinDate.value && IminDate.value) {
       date.value = new NepaliDate(
         IminDate.value.year,
@@ -745,48 +720,10 @@ const activeYear = (year: number) => {
 };
 
 // Fixed Min/Max Date Validation Functions
-const isDateDisabled = (dateToCheck: NepaliDate): boolean => {
-  if (
-    allowCheckMinDate.value &&
-    IminDate.value &&
-    dateToCheck.isBefore(IminDate.value)
-  ) {
-    return true;
-  }
-
-  if (
-    allowCheckMaxDate.value &&
-    ImaxDate.value &&
-    dateToCheck.isAfter(ImaxDate.value)
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
-const isYearDisabled = (year: number): boolean => {
-  if (allowCheckMinDate.value && IminDate.value && year < IminDate.value.year)
-    return true;
-  if (allowCheckMaxDate.value && ImaxDate.value && year > ImaxDate.value.year)
-    return true;
-  return false;
-};
-
-const isMonthDisabled = (monthIndex: number): boolean => {
-  const year = date.value.year;
-  if (allowCheckMinDate.value && IminDate.value) {
-    if (year < IminDate.value.year) return true;
-    if (year === IminDate.value.year && monthIndex < IminDate.value.month)
-      return true;
-  }
-  if (allowCheckMaxDate.value && ImaxDate.value) {
-    if (year > ImaxDate.value.year) return true;
-    if (year === ImaxDate.value.year && monthIndex > ImaxDate.value.month)
-      return true;
-  }
-  return false;
-};
+const getDateBounds = (): DateBounds => ({
+  minDate: allowCheckMinDate.value ? IminDate.value : undefined,
+  maxDate: allowCheckMaxDate.value ? ImaxDate.value : undefined,
+});
 
 //Check Today
 const checkToday = (dateToCheck: NepaliDate): boolean => {
@@ -829,13 +766,13 @@ const setMonthAndYear = (month: number, year: number): void => {
   yearValue.value = year;
 };
 const selectMonth = (month: number) => {
-  if (isMonthDisabled(month)) return;
+  if (isMonthDisabled(date.value.year, month, getDateBounds())) return;
   monthValue.value = month;
   date.value.setMonth(month);
   showMonth.value = false;
 };
 const selectYear = (year: number) => {
-  if (isYearDisabled(year)) return;
+  if (isYearDisabled(year, getDateBounds())) return;
   yearValue.value = year;
   date.value.setYear(year);
   showYear.value = false;
@@ -845,7 +782,7 @@ const selectYear = (year: number) => {
 };
 const select = (selectedDate: NepaliDate, dontClose: boolean = false) => {
   // Prevent selection of disabled dates
-  if (isDateDisabled(selectedDate)) {
+  if (isDateDisabled(selectedDate, getDateBounds())) {
     return;
   }
 
@@ -865,7 +802,7 @@ const updateInputtedValue = (dontClose: boolean = false) => {
   }
   try {
     const val = new NepaliDate(formattedValue.value);
-    if (isDateDisabled(val)) {
+    if (isDateDisabled(val, getDateBounds())) {
       console.warn("Entered date is outside allowed range");
       formattedValue.value = props.modelValue;
       return;
@@ -881,118 +818,29 @@ const handleInput = (e: any) => {
     formattedValue.value = e.target.value;
     return;
   }
-  const rawInput = e.target.value.replace(/[^0-9]/g, "").slice(0, 9);
-  let raw = rawInput;
 
-  let year = "";
-  let month = "";
-  let day = "";
+  const rawValue = e.target.value;
+  const formatted = maskNepaliDateInput(rawValue, date.value as NepaliDate, getDateBounds());
 
-  let maxDay = 31;
-
-  // ---- Year ----
-  if (raw.length >= 4) {
-    year = raw.slice(0, 4);
-  } else {
-    year = raw;
-  }
-
-  // ---- Month ----
-  if (raw.length >= 5) {
-    let m1 = raw.charAt(4);
-    let m2 = raw.charAt(5) || "";
-
-    if (m1 === "0") {
-      month = m1 + m2;
-    } else if (m1 === "1") {
-      if (["0", "1", "2"].includes(m2)) {
-        month = m1 + m2;
-      } else if (m2) {
-        month = "0" + m1;
-        raw = raw.slice(0, 5) + m2 + raw.slice(6);
-      } else {
-        month = m1;
-      }
-    } else if ("23456789".includes(m1)) {
-      month = "0" + m1;
-    }
-
-    if (month === "00") {
-      month = "0" + "";
-    }
-  }
-
-  if (/^\d{4}$/.test(year) && /^\d{2}$/.test(month)) {
-    let maxDayDate = date.value.endOfMonth();
-    maxDay = maxDayDate.day;
-  }
-
-  // ---- Day ----
-  if (raw.length >= 7) {
-    let d1 = raw.charAt(6);
-    let d2 = raw.charAt(7) || "";
-    let d3 = raw.charAt(8) || "";
-
-    if (d3) {
-      if (d1 === "0") {
-        const dayNum = parseInt(d2 + d3);
-        if (dayNum >= 1 && dayNum <= maxDay) {
-          day = d2 + d3;
-        } else {
-          day = d1 + d2;
-        }
-      } else {
-        day = d1 + d2;
-      }
-    } else if (d2) {
-      day = d1 + d2;
-    } else if ("456789".includes(d1)) {
-      day = "0" + d1;
-    } else if ("123".includes(d1)) {
-      day = d1;
-    }
-
-    if (day === "00" || parseInt(day) > maxDay) {
-      day = "";
-    }
-  }
-
-  if (/^\d{4}$/.test(year)) {
-    const tempYear = parseInt(year);
+  // Extract year and month from formatted string for reactive updates
+  const parts = formatted.split("-");
+  if (parts.length >= 1 && /^\d{4}$/.test(parts[0])) {
+    const tempYear = parseInt(parts[0]);
+    const bounds = getDateBounds();
     const yearInBounds =
-      (!IminDate.value || tempYear >= IminDate.value.year) &&
-      (!ImaxDate.value || tempYear <= ImaxDate.value.year);
+      (!bounds.minDate || tempYear >= bounds.minDate.year) &&
+      (!bounds.maxDate || tempYear <= bounds.maxDate.year);
     if (yearInBounds) {
-      try {
-        date.value.setYear(tempYear);
-      } catch {
-        /* keep typed text; commit-time validation will catch it */
-      }
+      try { date.value.setYear(tempYear); } catch { /* skip */ }
     }
   }
-
-  if (/^\d{2}$/.test(month)) {
-    const tempMonth = parseInt(month) - 1;
-    try {
-      date.value.setMonth(tempMonth);
-    } catch {
-      /* keep typed text; commit-time validation will catch it */
-    }
+  if (parts.length >= 2 && /^\d{2}$/.test(parts[1])) {
+    const tempMonth = parseInt(parts[1]) - 1;
+    try { date.value.setMonth(tempMonth); } catch { /* skip */ }
   }
 
-  // ---- Combine formatted string ----
-  let formatted = year;
-  if (month) {
-    formatted += "-" + month;
-  }
-  if (day) {
-    formatted += "-" + day;
-  }
-
-  // ---- Set back to input ----
   e.target.value = formatted;
-
-  if (formattedValue.value == formatted) return;
+  if (formattedValue.value === formatted) return;
   formattedValue.value = formatted;
 };
 
