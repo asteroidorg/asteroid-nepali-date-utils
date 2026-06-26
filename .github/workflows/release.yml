@@ -41,23 +41,10 @@ jobs:
         id: changelog
         with:
           config: cliff.toml
-          args: --verbose --unreleased --tag ${{ github.ref_name }} --prepend CHANGELOG.md       
+          args: --verbose --unreleased --tag ${{ github.ref_name }} --prepend CHANGELOG.md
         env:
           PREPEND: ${{ github.workspace }}/CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-
-      - name: Commit CHANGELOG.md back to main
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if git diff --quiet CHANGELOG.md; then
-            echo "CHANGELOG.md unchanged — nothing to commit."
-          else
-            git add CHANGELOG.md
-            git commit -m "chore(changelog): update for ${{ github.ref_name }} [skip ci]"
-            git push origin HEAD:refs/heads/main
-          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -77,13 +64,29 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Publish to npm
+        run: pnpm publish --ignore-scripts --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.changelog.outputs.content }}
           prerelease: ${{ contains(github.ref_name, '-') }}
 
-      - name: Publish to npm
-        run: pnpm publish --ignore-scripts --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Commit CHANGELOG.md back to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet CHANGELOG.md; then
+            echo "CHANGELOG.md unchanged — nothing to commit."
+          else
+            git add CHANGELOG.md
+            git commit -m "chore(changelog): update for ${{ github.ref_name }} [skip ci]"
+            git push origin HEAD:refs/heads/main || {
+              echo "::warning::Failed to push CHANGELOG.md to main (non-fast-forward or branch moved)."
+              echo "::warning::npm publish and GitHub Release for ${{ github.ref_name }} completed successfully."
+            }
+          fi
