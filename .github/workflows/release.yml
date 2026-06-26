@@ -84,6 +84,6 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
 
       - name: Publish to npm
-        run: pnpm publish --ignore-scripts --access public --no-git-checks
+        run: pnpm publish --ignore-scripts --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
