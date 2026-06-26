@@ -6,6 +6,8 @@ Utilities for converting and working with Nepali **Bikram Sambat (BS)** and
 - `AD2BS` / `BS2AD` — calendar conversion (object or string in, object or string out)
 - `convertAD2BS` / `convertBS2AD` — convenience wrappers that accept a JS `Date`
 - `NepaliFunctions` — a grouped API with `AD` and `BS` namespaces
+- `NepaliDate` — a class for BS date manipulation, formatting, and calendar views
+- `NepaliDatePicker` — a Vue date picker component for BS dates
 - Unicode digit helpers and number-to-words (English / Nepali)
 
 Zero runtime dependencies. Ships ESM, CJS, and TypeScript types.
@@ -122,6 +124,92 @@ convertAD2BS(new Date(2024, 0, 1)); // "2080-09-16"
 convertAD2BS("2024-01-01");         // "2080-09-16"
 convertBS2AD("2080-09-16");         // "2024-01-01"
 ```
+
+---
+
+## `NepaliDate` class
+
+A full-featured BS date class for manipulation, formatting, and calendar generation.
+
+```ts
+import { NepaliDate } from "@asteroidstudio/date-utils";
+
+// Create from today, a string, or year/month/day
+const today = new NepaliDate();
+const date = new NepaliDate("2080-09-16");
+const date2 = new NepaliDate(2080, 8, 16); // month is 0-based (8 = Poush)
+
+// Format with custom patterns
+date.format("YYYY-MM-DD");       // "2080-09-16"
+date.format("YYYY MMMM DD, dddd"); // "2080 Poush 16, Monday"
+date.format("YY-M-D");           // "80-9-16"
+
+// Getters
+date.getYear();    // 2080
+date.getMonth();   // 8  (0-based)
+date.getDate();    // 16
+date.getDay();     // 1  (day of week, 0 = Sunday)
+
+// Navigation
+date.addDays(10);   // NepaliDate 10 BS days later
+date.addMonths(2);  // NepaliDate 2 BS months later
+date.addYears(1);   // NepaliDate 1 BS year later
+
+// Start / end of periods
+date.startOfMonth(); // first day of the month
+date.endOfMonth();   // last day of the month (end of day)
+date.startOfYear();
+date.endOfYear();
+date.startOfWeek();  // Sunday of that week
+date.endOfWeek();    // Saturday of that week
+
+// Comparison
+date.isAfter(otherDate);
+date.isBefore(otherDate);
+date.isEqual(otherDate);
+date.isSame(otherDate, "month");
+
+// Utilities
+date.daysInMonth();       // days in the current month
+date.isLeapYear();        // whether the BS year has >= 366 days
+date.getWeeksInMonth();   // number of weeks in the month
+date.getEnglishDate();    // underlying JS Date
+date.clone();
+
+// Static helpers
+NepaliDate.getCalendarDays(2080, 8); // prev/current/next month day arrays
+NepaliDate.getMonthName(8);          // "Poush"
+NepaliDate.getDayName(1);            // "Monday"
+NepaliDate.isValid(2080, 8, 16);     // true
+NepaliDate.getQuarter(1, 2080);      // { start, end } for Q1
+NepaliDate.getCurrentFiscalYear();   // current BS fiscal year
+```
+
+### Format tokens
+
+| Token | Output | Example |
+|-------|--------|---------|
+| `Y`    | English year | `2080` |
+| `YY`   | Last 2 digits | `80` |
+| `y`    | Nepali year | `२०८०` |
+| `M`    | English month number (no padding) | `9` |
+| `MM`   | English month number (zero-padded) | `09` |
+| `MMM`  | Short English month | `Pou` |
+| `MMMM` | Full English month | `Poush` |
+| `m`    | Nepali month number | `९` |
+| `mm`   | Nepali month number (zero-padded) | `०९` |
+| `mmm`  | Short Nepali month | `पौ` |
+| `mmmm` | Full Nepali month | `पौष` |
+| `D`    | English day number | `16` |
+| `DD`   | English day number (zero-padded) | `16` |
+| `DDD`  | Short English weekday | `Mon` |
+| `DDDD` | Full English weekday | `Monday` |
+| `d`    | Nepali day number | `१६` |
+| `dd`   | Nepali day number (zero-padded) | `१६` |
+| `ddd`  | Short Nepali weekday | `सोम` |
+| `dddd` | Full Nepali weekday | `सोमवार` |
+
+Use `"` to escape literal text: `date.format('YYYY "year"')` → `2080 year`.
 
 ---
 
@@ -290,6 +378,96 @@ import type { DateObject, DateFormat } from "@asteroidstudio/date-utils";
 
 ---
 
+## `NepaliDatePicker` component
+
+A Vue 3 date picker for BS dates with month/year selection, min/max date constraints, auto-formatting, and clearable input.
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import { NepaliDatePicker } from "@asteroidstudio/date-utils/vue";
+
+const date = ref("");
+</script>
+
+<template>
+  <NepaliDatePicker v-model="date" placeholder="Select BS date" />
+</template>
+```
+
+### Basic usage
+
+| Example | Code |
+|---------|------|
+| **Default** | `<NepaliDatePicker v-model="date" />` |
+| **With placeholder** | `<NepaliDatePicker v-model="date" placeholder="Pick a date" />` |
+| **With min/max** | `<NepaliDatePicker v-model="date" min-date="2080-01-01" max-date="2090-12-30" />` |
+| **Clearable** | `<NepaliDatePicker v-model="date" allow-clear />` |
+| **Disabled** | `<NepaliDatePicker v-model="date" disabled />` |
+| **With mini AD dates** | `<NepaliDatePicker v-model="date" mini-english-date />` |
+| **Without Saturday highlight** | `<NepaliDatePicker v-model="date" :highlight-saturday="false" />` |
+| **Typing disabled** | `<NepaliDatePicker v-model="date" :allow-typing="false" />` |
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `modelValue` | `string` | `""` | Selected BS date in `YYYY-MM-DD` format (use with `v-model`) |
+| `id` | `string` | `""` | HTML `id` for the input element |
+| `placeholder` | `string` | `""` | Input placeholder text |
+| `minDate` | `string` | — | Minimum selectable BS date (`YYYY-MM-DD`) |
+| `maxDate` | `string` | — | Maximum selectable BS date (`YYYY-MM-DD`) |
+| `yearSelect` | `boolean` | `true` | Show year selector in the calendar header |
+| `monthSelect` | `boolean` | `true` | Show month selector in the calendar header |
+| `miniEnglishDate` | `boolean` | `false` | Show the AD day number below each BS day |
+| `highlightSaturday` | `boolean` | `true` | Highlight Saturdays in red |
+| `allowTyping` | `boolean` | `true` | Allow typing a date directly into the input |
+| `autoFormat` | `boolean` | `true` | Auto-format typed input to `YYYY-MM-DD` |
+| `updateOnInputChange` | `boolean` | `false` | Emit `update:modelValue` on each keystroke while typing |
+| `clickSelect` | `boolean` | `false` | Select all input text when the input gains focus |
+| `allowClear` | `boolean` | `false` | Show a clear (×) button when a date is selected |
+| `disabled` | `boolean` | `false` | Disable all interactions with the picker |
+| `class` | `string` | `""` | CSS class applied to the picker wrapper |
+| `inputClass` | `string` | `""` | CSS class applied to the `<input>` element |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `update:modelValue` | `date: string` | Emitted when a date is selected or cleared — bind with `v-model` |
+| `onSelect` | `date: string` | Emitted whenever a date is selected (identical payload to `update:modelValue`) |
+
+### Styling
+
+Styles are automatically included when importing the Vue module — no separate CSS import needed.
+
+The rendered DOM structure:
+
+```
+.nepali-datepicker               <!-- wrapper (props.class applied here) -->
+  .calendar-input-div            <!-- input + icon container -->
+    input.calendar-input         <!-- the text input (props.inputClass applied here) -->
+    .calendar-input-icon         <!-- calendar icon or clear (×) icon -->
+  .calendar                      <!-- dropdown positioned at "body" via Teleport -->
+    .calendar__head              <!-- year/month navigation -->
+    .calendar__container         <!-- days / months / years grid -->
+```
+
+Override styles by targeting these classes with higher specificity. Examples:
+
+```css
+/* Match the input width to your design */
+.calendar-input { border-radius: 6px; }
+
+/* Custom calendar color */
+.calendar__day.calendar__selected { background-color: #e67e22 !important; }
+
+/* Smaller picker */
+.calendar { width: 220px; }
+```
+
+---
+
 ## Notes & caveats
 
 - **Current-date helpers use Nepal Time (UTC+5:45).** `GetCurrentDate` and the
@@ -301,6 +479,7 @@ import type { DateObject, DateFormat } from "@asteroidstudio/date-utils";
 - **Many functions return `null`** on input that cannot be parsed or validated
   (e.g. `ValidateDate` returns `false`/`null`, conversions return `null`).
   Check the result before using it.
+- **The NepaliDatePicker styles are injected automatically** when importing from `@asteroidstudio/date-utils/vue` — no separate CSS import needed.
 
 ## License
 

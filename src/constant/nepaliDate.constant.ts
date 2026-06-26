@@ -1,4 +1,24 @@
-export const BS_CALENDAR_DATA = {
+export const EPOCH: number = Date.UTC(1913, 3, 13);
+
+export const WEEK_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const WEEK_SHORT_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export const WEEK_NP = ["आइतबार", "सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"];
+export const WEEK_SHORT_NP = ["आइत", "सोम", "मंगल", "बुध", "बिहि", "शुक्र", "शनि"];
+
+export const MONTH_EN = [
+  "Baisakh", "Jestha", "Asar", "Shrawan", "Bhadra", "Aswin",
+  "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra",
+];
+export const MONTH_SHORT_EN = ["Bai", "Jes", "Asa", "Shr", "Bhd", "Asw", "Kar", "Man", "Pou", "Mag", "Fal", "Cha"];
+export const MONTH_NP = [
+  "बैशाख", "जेठ", "असार", "श्रावण", "भाद्र", "आश्विन",
+  "कार्तिक", "मंसिर", "पौष", "माघ", "फाल्गुण", "चैत्र",
+];
+export const MONTH_SHORT_NP = ["बै", "जे", "अ", "श्रा", "भा", "आ", "का", "मं", "पौ", "मा", "फा", "चै"];
+
+export const NUMBER_NP = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
+
+export const BS_CALENDAR_DATA: Record<number, number[]> = {
   // Initialize BS calendar data
   [1970]: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
   [1971]: [31, 31, 32, 31, 32, 30, 30, 29, 30, 29, 30, 30],
