@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate version match
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          TAG_VERSION="${TAG#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+          echo "Tag     : $TAG_VERSION"
+          echo "package : $PKG_VERSION"
+
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Version mismatch — tag is $TAG_VERSION but package.json is $PKG_VERSION"
+            echo "::error::Update package.json to $TAG_VERSION before tagging."
+            exit 1
+          fi
+
+          echo "Versions match: $TAG_VERSION"
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: changelog
+        with:
+          config: cliff.toml
+          args: --verbose --unreleased --tag ${{ github.ref_name }} --prepend CHANGELOG.md
+        env:
+          PREPEND: ${{ github.workspace }}/CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Publish to npm
+        run: pnpm publish --ignore-scripts --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.content }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+      - name: Commit CHANGELOG.md back to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet CHANGELOG.md; then
+            echo "CHANGELOG.md unchanged — nothing to commit."
+          else
+            git add CHANGELOG.md
+            git commit -m "chore(changelog): update for ${{ github.ref_name }} [skip ci]"
+            git push origin HEAD:refs/heads/main || {
+              echo "::warning::Failed to push CHANGELOG.md to main (non-fast-forward or branch moved)."
+              echo "::warning::npm publish and GitHub Release for ${{ github.ref_name }} completed successfully."
+            }
+          fi
