@@ -1,6 +1,6 @@
 {
   "name": "@asteroidstudio/date-utils",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Library for handling nepali date",
   "keywords": [
     "nepali",
@@ -37,10 +37,9 @@
       "require": "./dist/vue.cjs"
     }
   },
-    "sideEffects": [
+  "sideEffects": [
     "**/*.css"
   ],
-
   "files": [
     "dist",
     "README.md",
