@@ -18,22 +18,24 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Update package.json version from tag
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '$VERSION';
-            fs.writeFileSync(
-              'package.json',
-              JSON.stringify(pkg, null, 2) + '\n'
-            );
-          "
-
-          echo "Updated package.json version to $VERSION"
+         VERSION="${GITHUB_REF_NAME#v}"
+         pnpm version "$VERSION" --no-git-tag-version
+         echo "Updated package.json version to $VERSION"
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -70,18 +72,6 @@ jobs:
             mv /tmp/updated.md CHANGELOG.md
           fi
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -99,15 +89,15 @@ jobs:
           body: ${{ steps.changelog.outputs.content }}
           prerelease: ${{ contains(github.ref_name, '-') }}
 
-      - name: Commit CHANGELOG.md back to main
+      - name: Commit release metadata back to main
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if git diff --quiet CHANGELOG.md; then
+          if git diff --quiet package.json CHANGELOG.md; then
             echo "CHANGELOG.md unchanged — nothing to commit."
           else
-            git add CHANGELOG.md
+            git add package.json CHANGELOG.md
             git commit -m "chore(changelog): update for ${{ github.ref_name }} [skip ci]"
             git push origin HEAD:refs/heads/main || {
               echo "::warning::Failed to push CHANGELOG.md to main (non-fast-forward or branch moved)."
