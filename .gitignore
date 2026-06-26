@@ -7,5 +7,3 @@ dist
 .env.local
 test.ts
 scripts/
-event.json
-.secrets
