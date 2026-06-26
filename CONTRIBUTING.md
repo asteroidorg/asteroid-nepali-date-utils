@@ -9,7 +9,6 @@
   - [Project Layout](#project-layout)
   - [Contribution Guidelines](#contribution-guidelines)
   - [Commit Message Guidelines](#commit-message-guidelines)
-  - [Changelog Generation](#changelog-generation)
   - [Pull Request Guidelines](#pull-request-guidelines)
   <!--toc:end-->
 
@@ -136,37 +135,6 @@ fix(nepalidate): correct EPOCH offset for BS year calculation
 feat(NepaliDatePicker): add allowClear prop
 docs: document NepaliDate format tokens
 ```
-
-## Changelog Generation
-
-The `CHANGELOG.md` is **auto-generated** from commit messages using [`git-cliff`](https://git-cliff.org) during the release workflow (`.github/workflows/release.yml`).
-
-Configuration lives in [`cliff.toml`](./cliff.toml). Here is how your commits map to changelog entries:
-
-| `type` (conventional commit) | Changelog section  |
-|------------------------------|-------------------|
-| `feat`                       | **Features**      |
-| `fix`                        | **Bug Fixes**     |
-| `perf`                       | **Performance**   |
-| `refactor`                   | **Refactoring**   |
-| `docs` / `doc`               | **Documentation** |
-| `test`                       | **Tests**         |
-| `build`                      | **Build System**  |
-| `ci`                         | **CI**            |
-| `chore`                      | **Miscellaneous** |
-
-Commits with the following types are **skipped** and do not appear in the changelog:
-
-- `chore(changelog)` — automated changelog update commits
-- `chore(release)` — release commits
-- `Merge` — merge commits
-
-The commit description (the part after `<type>(<scope>): `) is used as the entry text. A shortened commit hash is appended as a link to GitHub.
-
-When you tag a release (e.g. `v0.2.0`) and push, the workflow:
-1. Generates a new changelog section from commits since the last tag
-2. Inserts it under the `# Changelog` heading above previous entries
-3. Commits the updated `CHANGELOG.md` back to `main`
 
 ## Pull Request Guidelines
 

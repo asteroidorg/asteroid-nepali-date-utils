@@ -468,31 +468,6 @@ Override styles by targeting these classes with higher specificity. Examples:
 
 ---
 
-## Changelog
-
-The `CHANGELOG.md` is auto-generated from [Conventional Commits](https://www.conventionalcommits.org/) using [`git-cliff`](https://git-cliff.org). Configuration is in [`cliff.toml`](./cliff.toml).
-
-When a semver tag (e.g. `v0.2.0`) is pushed, the release workflow:
-
-1. Scans commits since the last tag
-2. Groups them into sections (`Features`, `Bug Fixes`, etc.) based on commit type
-3. Inserts the new section under the `# Changelog` heading
-4. Creates a GitHub Release with the same content
-
-| Commit type | Changelog section |
-|---|---|
-| `feat` | Features |
-| `fix` | Bug Fixes |
-| `perf` | Performance |
-| `refactor` | Refactoring |
-| `docs` | Documentation |
-| `test` | Tests |
-| `build` | Build System |
-| `ci` | CI |
-| `chore` | Miscellaneous |
-
-Commits matching `chore(changelog)`, `chore(release)`, or `Merge` are skipped.
-
 ## Notes & caveats
 
 - **Current-date helpers use Nepal Time (UTC+5:45).** `GetCurrentDate` and the
