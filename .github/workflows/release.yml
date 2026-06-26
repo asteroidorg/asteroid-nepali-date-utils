@@ -19,56 +19,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update package.json version from tag
+      - name: Validate version match
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${GITHUB_REF_NAME}"
+          TAG_VERSION="${TAG#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
 
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '$VERSION';
-            fs.writeFileSync(
-              'package.json',
-              JSON.stringify(pkg, null, 2) + '\n'
-            );
-          "
+          echo "Tag     : $TAG_VERSION"
+          echo "package : $PKG_VERSION"
 
-          echo "Updated package.json version to $VERSION"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Version mismatch — tag is $TAG_VERSION but package.json is $PKG_VERSION"
+            echo "::error::Update package.json to $TAG_VERSION before tagging."
+            exit 1
+          fi
+
+          echo "Versions match: $TAG_VERSION"
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: changelog
         with:
           config: cliff.toml
-          args: --verbose --unreleased --tag ${{ github.ref_name }}
+          args: --verbose --unreleased --tag ${{ github.ref_name }} --prepend CHANGELOG.md
         env:
+          PREPEND: ${{ github.workspace }}/CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
-
-      - name: Insert changelog entry into CHANGELOG.md
-        run: |
-          cat > /tmp/new_entry.md << 'EOF'
-          ${{ steps.changelog.outputs.content }}
-          EOF
-
-          heading_line=$(grep -n '^# Changelog' CHANGELOG.md | head -1 | cut -d: -f1)
-          if [ -z "$heading_line" ]; then
-            echo "::error::No '# Changelog' heading found in CHANGELOG.md"
-            exit 1
-          fi
-
-          first_ver=$(tail -n +"$heading_line" CHANGELOG.md | grep -n '^## \[' | head -1 | cut -d: -f1)
-
-          if [ -z "$first_ver" ]; then
-            cat /tmp/new_entry.md >> CHANGELOG.md
-          else
-            first_ver=$((heading_line + first_ver - 1))
-            head -n $((first_ver - 1)) CHANGELOG.md > /tmp/updated.md
-            echo "" >> /tmp/updated.md
-            cat /tmp/new_entry.md >> /tmp/updated.md
-            echo "" >> /tmp/updated.md
-            tail -n +"$first_ver" CHANGELOG.md >> /tmp/updated.md
-            mv /tmp/updated.md CHANGELOG.md
-          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
